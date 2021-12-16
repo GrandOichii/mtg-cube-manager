@@ -1,0 +1,6 @@
+__pycache__/
+.DS_Store
+cubes/
+other/
+all_cards.json
+.vscode
