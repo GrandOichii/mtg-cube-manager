@@ -307,7 +307,6 @@ def message_box(parent: 'UIElements.Window', message: str, choices: list=['Ok'],
     key = -1
     while not done:
         put(win, height - 2, 1, ' ' * width)
-        win.refresh()
         if key == 260: # LEFT
             choice_id -= 1
             if choice_id < 0:

@@ -135,9 +135,8 @@ class CreatureCard(Card):
         self.toughness = ''
 
 class Cube:
-    def import_from(text: str):
-        # if not os.path.exists(path):
-        #     raise Exception(f'ERR: file {path} doesn\'t exist')
+    def import_from(text: str):        
+        text = text.replace('\r', '')
         lines = text.split('\n')
         result = Cube('')
         for card_name in lines:
@@ -211,4 +210,13 @@ class Cube:
                 counts[card_color][card_type] += 1
         return counts
 
-    
+    def get_cmcs(self):
+        result = dict()
+        for color in COLORS:
+            max_cmc = max([card.cmc for card in self.cards if card.get_color() == color])
+            result[color] = [0 for i in range(int(max_cmc) + 1)]
+        for card in self.cards:
+            card_color = card.get_color()
+            result[card_color][int(card.cmc)] += 1
+        return result
+        

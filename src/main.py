@@ -3,7 +3,7 @@ import os
 import clipboard
 from mtgsdk import CARD_TYPES, CCT_COLORS, Card, Cube, COLORS
 
-from cursesui.Elements import Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
+from cursesui.Elements import BarChart, Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
 from cursesui.Utility import SINGLE_ELEMENT, cct_real_str, choose_file, draw_borders, drop_down_box, message_box, put, reverse_color_pair, str_smart_split
 
 os.environ.setdefault('ESCDELAY', '25')
@@ -27,7 +27,7 @@ def get_saved_cube_names():
 
 class ColorStatisticsTab(MenuTab):
     def __init__(self, parent: Window, color: str, cube: Cube):
-        super().__init__(parent, f'#{CCT_COLORS[color]} {color} statistics')
+        super().__init__(parent, f'#{CCT_COLORS[color]} {color}')
         self.color = color
         self.cube = cube
         self.initUI()
@@ -74,6 +74,9 @@ class ColorStatisticsTab(MenuTab):
             'Planeswalker': self.planeswalker_count_label
         }
 
+        self.cmc_bar_chart = BarChart(self.parent, 25, 40, [1, 4, 7, 5, 2], 'green-black', 2)
+        self.cmc_bar_chart.set_pos(pie_chart_height + 5, 1)
+
         self.add_element(self.total_count_label)
         self.add_element(Separator(self.parent, 3, color_pair='orange-black'))
         self.add_element(self.pie_chart)
@@ -87,12 +90,15 @@ class ColorStatisticsTab(MenuTab):
         self.add_element(self.land_count_label)
         self.add_element(self.planeswalker_count_label)
         self.add_element(VerticalLine(self.parent, pie_chart_height + 2, 'orange-black', 3, 98))
+        self.add_element(self.cmc_bar_chart)
 
     def update(self):
+        # counts
         count = self.cube.get_color_counts()[self.color]
         all_count = count['all']
         self.total_count_label.text = f'Total: #{CCT_COLORS[self.color]} {all_count}'
 
+        # pie chart values
         pie_chart_values = []
         pie_chart_colors = []
         for card_type in CARD_TYPES:
@@ -101,9 +107,11 @@ class ColorStatisticsTab(MenuTab):
             if c != 0:
                 pie_chart_values += [c]
                 pie_chart_colors += [PIE_WHEEL_TYPE_COLORS[card_type]]
-
         self.pie_chart.set_values(pie_chart_values)
         self.pie_chart.set_colors(pie_chart_colors)
+
+        # cmc bar chart
+        self.cmc_bar_chart.values = self.cube.get_cmcs()[self.color]
 
     def handle_key(self, key: int):
         super().handle_key(key)

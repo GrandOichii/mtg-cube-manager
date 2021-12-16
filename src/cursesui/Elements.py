@@ -1,6 +1,6 @@
 import curses
 from curses.textpad import rectangle
-from math import acos, asin, atan, atan2, cos, degrees, pi, sin, sqrt, radians, tan
+from math import atan2, pi, sqrt
 
 from cursesui.Utility import _check_and_add, draw_borders, draw_separator, message_box, put, init_colors, cct_len, show_controls_window, str_smart_split, color_pair_nums
 
@@ -196,6 +196,34 @@ class Canvas(UIElement):
         super().__init__(parent, text)
         self.height = height
         self.width = width
+
+class BarChart(Canvas):
+    def __init__(self, parent: Window, height: int, width: int, values: list[int], label_color_pair: str='none', distance_between_columns: int=1):
+        super().__init__(parent, '', height, width)
+        if width / (distance_between_columns + 1) < len(values):
+            raise Exception('ERR: in BarChart width is bigger than the amount of values')
+        self.values = values
+        self.label_color_pair = label_color_pair
+        self.distance_between_columns = distance_between_columns
+
+    def draw(self):
+        y = self.y + Y_OFFSET
+        x = self.x + X_OFFSET
+        parent_window = self.parent.get_window()
+        rectangle(parent_window, y, x, y + self.height, x + self.width)
+        max_val = max(self.values)
+        temp_vals = list(self.values)
+        temp_vals = [int(value * (self.height - 2) / max_val) for value in temp_vals]
+        if self.label_color_pair != 'none':
+            parent_window.attron(curses.color_pair(color_pair_nums[self.label_color_pair]))
+            for i in range(len(self.values)):
+                parent_window.addstr(y + self.height - 1, x + 1 + (self.distance_between_columns + 1) * i, str(i))
+            parent_window.attroff(curses.color_pair(color_pair_nums[self.label_color_pair]))
+        for i in range(self.height - 2):
+            for j in range(len(temp_vals)):
+                if temp_vals[j] > 0:
+                    parent_window.addstr(y + self.height - i - 2, x + 1 + (self.distance_between_columns + 1) * j, '#')
+                    temp_vals[j] -= 1
 
 class PieChart(Canvas):
     def __init__(self, parent: Window, height: int, width: int, values: list[int], colors: list[str]=None):
@@ -498,9 +526,9 @@ class List(UIElement):
         x = self.x + X_OFFSET
         parent_window = self.parent.get_window()
         color_id = color_pair_nums[self.border_color]
-        parent_window.attron(curses.color_pair(color_pair_nums[self.border_color]))
+        parent_window.attron(curses.color_pair(color_id))
         rectangle(parent_window, y, x, y + self.height - 1, x + self.width)
-        parent_window.attroff(curses.color_pair(color_pair_nums[self.border_color]))
+        parent_window.attroff(curses.color_pair(color_id))
 
     def draw_scroller(self):
         if len(self.options) > self.displayed_elements_num:
