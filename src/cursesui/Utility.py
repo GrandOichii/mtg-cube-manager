@@ -26,6 +26,7 @@ cc = {
     'pink': 219,
     'orange': 202
 }
+# add all colors
 for i in range(10, 250):
     cc[str(i)] = i
 colors = {}
@@ -86,6 +87,13 @@ def pos_neg_int(n: int):
         return f'+{n}'
     return str(n)    
 
+def get_percentages(values: list):
+    total = sum(values)
+    if total == 0:
+        return [0 for i in range(len(values))]
+    result = [value * 100 / total for value in values]
+    return result
+
 def reverse_color_pair(color_pair: str):
     return '-'.join(color_pair.split('-')[::-1])
 
@@ -120,17 +128,27 @@ def draw_separator(window, y: int, color_pair: str='normal'):
     _check_and_add(color_pair)
     _, width = window.getmaxyx()
     flag = color_pair != 'normal'
-
+    color_pair_attr = curses.color_pair(color_pair_nums[color_pair])
     if flag:
-        window.attron(curses.color_pair(color_pair_nums[color_pair]))
-    window.addch(y, 0, curses.ACS_LTEE)
-    window.addch(y, width - 1, curses.ACS_RTEE)
-    for i in range(1, width - 1):
-        window.addch(y, i, curses.ACS_HLINE)
+        window.attron(color_pair_attr)
+    # window.addch(y, 0, curses.ACS_LTEE)
+    # window.addch(y, width - 1, curses.ACS_RTEE)
+    for i in range(0, width):
+        if window.inch(y, i) - color_pair_attr == curses.ACS_VLINE:
+            if i == 0:
+                window.addch(y, i, curses.ACS_LTEE)
+            elif i == width - 1:
+                window.addch(y, i, curses.ACS_RTEE)
+            else:
+                window.addch(y, i, curses.ACS_PLUS)
+        else:
+            window.addch(y, i, curses.ACS_HLINE)
     if flag:
-        window.attroff(curses.color_pair(color_pair_nums[color_pair]))
+        window.attroff(color_pair_attr)
 
 def str_smart_split(message: str, max_width: int):
+    if message == '':
+        return ['']
     message = '#normal ' + message
     split = re.findall(color_regex, message)
     words = []

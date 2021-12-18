@@ -192,14 +192,25 @@ class UIElement:
         return cct_len(self.focused_format.format(self.text))
 
 class Canvas(UIElement):
-    def __init__(self, parent: Window, text: str, height: int, width: int):
+    def __init__(self, parent: Window, text: str, height: int, width: int, border_color_pair: str='none'):
         super().__init__(parent, text)
         self.height = height
         self.width = width
+        self.border_color_pair = border_color_pair
+
+    def draw(self):
+        if self.border_color_pair == 'none':
+            return
+        y = self.y + Y_OFFSET
+        x = self.x + X_OFFSET
+        parent_window = self.parent.get_window()
+        parent_window.attron(curses.color_pair(color_pair_nums[self.border_color_pair]))
+        rectangle(parent_window, y, x, y + self.height, x + self.width)
+        parent_window.attroff(curses.color_pair(color_pair_nums[self.border_color_pair]))
 
 class BarChart(Canvas):
-    def __init__(self, parent: Window, height: int, width: int, values: list[int], label_color_pair: str='none', distance_between_columns: int=1):
-        super().__init__(parent, '', height, width)
+    def __init__(self, parent: Window, height: int, width: int, values: list[int], label_color_pair: str='none', distance_between_columns: int=1, border_color_pair: str='none'):
+        super().__init__(parent, '', height, width, border_color_pair)
         if width / (distance_between_columns + 1) < len(values):
             raise Exception('ERR: in BarChart width is bigger than the amount of values')
         self.values = values
@@ -207,10 +218,12 @@ class BarChart(Canvas):
         self.distance_between_columns = distance_between_columns
 
     def draw(self):
+        super().draw()
         y = self.y + Y_OFFSET
         x = self.x + X_OFFSET
         parent_window = self.parent.get_window()
-        rectangle(parent_window, y, x, y + self.height, x + self.width)
+        if len(self.values) == 0:
+            return
         max_val = max(self.values)
         temp_vals = list(self.values)
         temp_vals = [int(value * (self.height - 2) / max_val) for value in temp_vals]
@@ -226,8 +239,8 @@ class BarChart(Canvas):
                     temp_vals[j] -= 1
 
 class PieChart(Canvas):
-    def __init__(self, parent: Window, height: int, width: int, values: list[int], colors: list[str]=None):
-        super().__init__(parent, '', height, width)
+    def __init__(self, parent: Window, height: int, width: int, values: list[int], border_color_pair: str='none', colors: list[str]=None):
+        super().__init__(parent, '', height, width, border_color_pair)
         self.values = values
         self.center_y = 0
         self.center_x = 0
@@ -235,11 +248,11 @@ class PieChart(Canvas):
         self.set_position_vars()
         self.set_values_vars()
         if colors == None:
-            colors = [f'{(i + 1) * 20}-black' for i in range(len(self.values))]
+            colors = [f'{(i + 1) * 20}' for i in range(len(self.values))]
         self.set_colors(colors)
 
     def set_values(self, values: list[int]):
-        self.values = values
+        self.values = list(values)
         self.set_values_vars()
 
     def set_colors(self, colors: list[str]):
@@ -270,6 +283,7 @@ class PieChart(Canvas):
         self.set_position_vars()
 
     def draw(self):
+        super().draw()
         parent_window = self.parent.get_window()
         y = self.y + Y_OFFSET
         x = self.x + X_OFFSET
@@ -292,7 +306,7 @@ class PieChart(Canvas):
                     rad = atan2(top, bottom)
                     ri = 0
                     for ri in range(len(self.rads)):
-                        if rad < self.rads[ri]:
+                        if rad <= self.rads[ri]:
                             break
                     parent_window.addstr(y_pos, x_pos, '#', self.color_pairs[ri])
 
@@ -320,8 +334,8 @@ class VerticalLine(UIElement):
         y = self.y + Y_OFFSET
         x = self.x + X_OFFSET
         color_pair_attr = curses.color_pair(color_pair_nums[self.color_pair])
+        parent_window.attron(color_pair_attr)
         for i in range(self.height):
-            parent_window.attron(color_pair_attr)
             if parent_window.inch(y + i, x) - color_pair_attr == curses.ACS_HLINE:
                 if i == 0:
                     parent_window.addch(y + i, x, curses.ACS_TTEE)
@@ -331,7 +345,7 @@ class VerticalLine(UIElement):
                     parent_window.addch(y + i, x, curses.ACS_PLUS)
             else:
                 parent_window.addch(y + i, x, curses.ACS_VLINE)
-            parent_window.attroff(color_pair_attr)
+        parent_window.attroff(color_pair_attr)
 
 class Button(UIElement):
     def __init__(self, parent: Window, text: str, click=None):
@@ -367,7 +381,7 @@ class TextField(UIElement):
         if key >= 65 and key <= 90:
             self.text += chr(key)
             self.cursor += 1
-        if key == 45 or key == 39: # -/'
+        if key == 45 or key == 39 or key == 58: # -/'/:
             self.text += chr(key)
             self.cursor += 1
         if key == 32:
@@ -391,6 +405,10 @@ class TextField(UIElement):
 
     def draw_width(self):
         return self.max_width
+
+    def reset_text(self):
+        self.text = ''
+        self.cursor = 0
 
 class NumericLeftRight(UIElement):
     def __init__(self, parent: Window, value: int, min_val: int, max_val: int):
@@ -494,9 +512,9 @@ class Widget(UIElement):
         last.set_pos(self.y, self.parent.WIDTH - width - 2)
         last.draw()
 
-class List(UIElement):
-    def __init__(self, parent: Window, options: list[str], height: int=-1, width: int=-1, click=None):
-        super().__init__(parent, '')
+class List(Canvas):
+    def __init__(self, parent: Window, options: list[str], height: int=-1, width: int=-1, click=None, border_color_pair='none'):
+        super().__init__(parent, '', height, width, border_color_pair)
         self.options = options
         self.click = click
         self.border_color = 'none'
@@ -505,30 +523,17 @@ class List(UIElement):
         self.choice = 0
         self.page_n = 0
         self.cursor = 0
-        self.height = height
         if height == -1:
-            self.height = self.displayed_elements_num + 2
+            self.height = len(options) + 2
         self.displayed_elements_num = self.height - 2
-        self.width = width
         if width == -1:
             self.width = max([cct_len(o) for o in self.options]) + 3
 
     def set_pos(self, y: int, x: int):
-        if self.displayed_elements_num + x + X_OFFSET > self.parent.HEIGHT:
-            curses.beep()
+        if self.displayed_elements_num + y + Y_OFFSET > self.parent.HEIGHT:
+            # curses.beep()
             self.displayed_elements_num = self.parent.HEIGHT - x - X_OFFSET
         super().set_pos(y, x)
-
-    def draw_borders(self):
-        if self.border_color == 'none':
-            return
-        y = self.y + Y_OFFSET
-        x = self.x + X_OFFSET
-        parent_window = self.parent.get_window()
-        color_id = color_pair_nums[self.border_color]
-        parent_window.attron(curses.color_pair(color_id))
-        rectangle(parent_window, y, x, y + self.height - 1, x + self.width)
-        parent_window.attroff(curses.color_pair(color_id))
 
     def draw_scroller(self):
         if len(self.options) > self.displayed_elements_num:
@@ -546,10 +551,11 @@ class List(UIElement):
                 parent_window.addch(2 + y + i, self.width - 2 + x, curses.ACS_VLINE)
     
     def draw(self):
+        super().draw()
         y = self.y + Y_OFFSET
         x = self.x + X_OFFSET
         parent_window = self.parent.get_window()
-        self.draw_borders()
+        # parent_window.addstr(y, x, str(self.displayed_elements_num))
         self.draw_scroller()
         for i in range(min(self.displayed_elements_num, len(self.options))):
             if i == self.cursor and self.focused:
@@ -559,8 +565,8 @@ class List(UIElement):
 
     def handle_key(self, key: int):
         # the main thing
-        if key == 10: # ENTER
-            self.click(self.choice, self.options[self.choice])
+        if key == 10 and len(self.options) > 0: # ENTER
+            self.click(self.choice, self.cursor, self.options[self.choice])
         if key == self.scroll_up_key: # SCROLL UP
             self.choice -= 1
             self.cursor -= 1
@@ -599,6 +605,9 @@ class List(UIElement):
         self.cursor = 0
         self.page_n = 0
         self.choice = 0
+
+    def set_option_at(self, index: int, value: str):
+        self.options[index] = value
 
     def get_selected(self):
         return self.options[self.choice]
