@@ -1,23 +1,18 @@
 import curses
 import os
 import clipboard
-from mtgsdk import CARD_TYPES, CCT_COLORS, THEMES, Card, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL
+from mtgsdk import CARD_TYPES, CCT_COLORS, THEMES, Card, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL, PIE_WHEEL_TYPE_COLORS
 
 from cursesui.Elements import BarChart, Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
-from cursesui.Utility import SINGLE_ELEMENT, cct_len, cct_real_str, choose_file, draw_borders, drop_down_box, get_percentages, message_box, put, reverse_color_pair, str_smart_split
+from cursesui.Utility import SINGLE_ELEMENT, cct_len, cct_real_str, choose_file, draw_borders, draw_separator, drop_down_box, get_percentages, message_box, put, reverse_color_pair, str_smart_split
 
 os.environ.setdefault('ESCDELAY', '25')
 
 SAVE_PATH = 'cubes'
-PIE_WHEEL_TYPE_COLORS = {
-    'Creature': 'red',
-    'Sorcery': 'pink',
-    'Instant': 'cyan',
-    'Enchantment': 'orange',
-    'Artifact': 'gray',
-    'Land': 'white',
-    'Planeswalker': 'magenta'
-}
+
+CARD_HEIGHT = 25
+CARD_WIDTH = 40
+
 
 def get_saved_cube_names():
     if not os.path.exists(SAVE_PATH):
@@ -25,32 +20,53 @@ def get_saved_cube_names():
         return []
     return [os.path.splitext(f)[0] for f in os.listdir(SAVE_PATH) if os.path.isfile(os.path.join(SAVE_PATH, f)) and os.path.splitext(f)[1] == '.cube']
 
+def draw_card(card: Card, y: int, x: int):
+    window = curses.newwin(CARD_HEIGHT, CARD_WIDTH, y, x)
+    color_pair = CCT_COLORS[card.get_color()]
+    # draw
+    draw_borders(window, color_pair)
+    window.addstr(1, 1, card.name)
+    manacost = card.get_cct_mana_cost()
+    put(window, 1, CARD_WIDTH - cct_len(manacost) - 1, manacost)
+    draw_separator(window, 2, color_pair)
+    card_type = card.get_cct_type()
+    put(window, 3, 1, card_type)
+    draw_separator(window, 4, color_pair)
+    y = 5
+    text = card.get_cct_text().split('\n')
+    for line in text:
+        for l in str_smart_split(line, CARD_WIDTH - 2):
+            put(window, y, 1, l)
+            y += 1
+    window.getch()
+
 def open_card_description_window(parent: Window, card: Card):
     if card == None:
         return
-    height = parent.HEIGHT * 2 // 3
-    width = parent.WIDTH * 2 // 3
-    y = (parent.HEIGHT - height) // 2
-    x = (parent.WIDTH - width) // 2
-    window = curses.newwin(height, width, y, x)
-    card_description = card.get_cct_description().split('\n')
-    draw_borders(window, 'magenta-black')
-    put(window, 0, 1, f'Card description')
-    put(window, 1, width - cct_len(card_description[0]) - 1, card_description[0])
-    put(window, 2, 2, card_description[1])
-    put(window, 3, 2, card_description[2])
-    y = 4
-    for l in range(3, len(card_description)):
-        desc = str_smart_split(card_description[l], width - 4)
-        for i in range(len(desc)):
-            y += 1
-            put(window, y, 2, desc[i])
-    themes = card.get_themes()
-    y += 2
-    put(window, y, 1, '#pink-black Themes:')
-    for i in range(len(themes)):
-        put(window, y + 1 + i, 2, themes[i])
-    window.getch()
+    draw_card(card, 10, 10)
+    # height = parent.HEIGHT * 2 // 3
+    # width = parent.WIDTH * 2 // 3
+    # y = (parent.HEIGHT - height) // 2
+    # x = (parent.WIDTH - width) // 2
+    # window = curses.newwin(height, width, y, x)
+    # card_description = card.get_cct_description().split('\n')
+    # draw_borders(window, 'magenta-black')
+    # put(window, 0, 1, f'Card description')
+    # put(window, 1, width - cct_len(card_description[0]) - 1, card_description[0])
+    # put(window, 2, 2, card_description[1])
+    # put(window, 3, 2, card_description[2])
+    # y = 4
+    # for l in range(3, len(card_description)):
+    #     desc = str_smart_split(card_description[l], width - 4)
+    #     for i in range(len(desc)):
+    #         y += 1
+    #         put(window, y, 2, desc[i])
+    # themes = card.get_themes()
+    # y += 2
+    # put(window, y, 1, '#pink-black Themes:')
+    # for i in range(len(themes)):
+    #     put(window, y + 1 + i, 2, themes[i])
+    # window.getch()
 
 class ColorStatisticsTab(MenuTab):
     def __init__(self, parent: Window, color: str, cube: Cube):
@@ -336,6 +352,10 @@ class CubeManagerWindow(Window):
         super().__init__(window)
         self.state = 'main_menu'
         self.imported_text = ''
+        # options = []
+        # for i in range(250):
+        #     options += [f'#{i}-black color n{i}']
+        # drop_down_box(options, 10, 1, 1, SINGLE_ELEMENT)
 
     def initUI(self):
         color_pair = '98-black'

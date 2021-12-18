@@ -168,7 +168,10 @@ def str_smart_split(message: str, max_width: int):
         if len(word_line + word) > max_width:
             result += [line]
             word_line = word
-            line = f'#{words[i][1]} {word}'
+
+            line = f'#{words[i][1]} '
+            if word != ' ':
+                line += word
         else:
             if words[i][1] != words[i - 1][1]:
                 line += f'#{words[i][1]} '

@@ -1,3 +1,4 @@
+from os import replace
 import requests
 import json
 import os.path
@@ -41,6 +42,86 @@ THEME_WORDS = {
 }
 
 THEMES = list(THEME_WORDS.keys())
+
+MANA_SYMBOL_COLORS = {
+    '{W}': '#white-black W',
+    '{U}': '#cyan-black U',
+    '{B}': '#239-black B',
+    '{R}': '#red-black R',
+    '{G}': '#green-black G',
+    '{C}': '#gray-black C',
+    '{T}': '#orange-black T',
+    '{E}': '#yellow-black E'
+}
+
+KEYWORD_COLORS = {
+    'Flying': '#cyan-black Flying#normal ',
+    'flying': '#cyan-black flying#normal ',
+    'Destroy': '#red-black Destroy#normal ',
+    'draw a card': '#cyan-black DRAW A CARD#normal ',
+    'Draw a card': '#cyan-black DRAW A CARD#normal ',
+    'Lifelink': '#169-black Lifelink#normal ',
+    'lifelink': '#169-black lifelink#normal ',
+    'Counter': '#21-black Counter#normal ',
+    'Threshold': '#239-black Threshold#normal ',
+    'Treasure': '#yellow-black Treasure#normal ',
+    'Deathtouch': '#green-black Deathtouch#normal ',
+    'deathtouch': '#green-black deathtouch#normal ',
+    'Menace': '#magenta-black Menace#normal ',
+    'menace': '#magenta-black menace#normal ',
+    'Flash': '#orange-black Flash#normal ',
+    'flash': '#orange-black flash#normal ',
+    'Exile': '#magenta-black Exile#normal ',
+    'exile': '#magenta-black exile#normal ',
+    'Vigilance': '#orange-black Vigilance#normal ',
+    'vigilance': '#orange-black vigilance#normal ',
+    'Convoke': '#green-black Convoke#normal ',
+    'Double strike': '#red-black Double strike#normal ',
+    'First strike': '#yellow-black First strike#normal ',
+    'first strike': '#yellow-black first strike#normal ',
+    'Scry {}': '#cyan-black Scry {}#normal ',
+    'deals {} damage': '#red-black deals {} damage#normal ',
+    'gain {} life': '#168-black gain {} life#normal ',
+    'loses {} life': '#239-black loses {} life#normal ',
+}
+
+PIE_WHEEL_TYPE_COLORS = {
+    'Creature': 'red',
+    'Sorcery': 'pink',
+    'Instant': 'cyan',
+    'Enchantment': 'orange',
+    'Artifact': 'gray',
+    'Land': 'white',
+    'Planeswalker': 'magenta'
+}
+
+def replace_mana_symbols(text: str):
+    result = str(text)
+    for mana_symbol in MANA_SYMBOL_COLORS:
+        result = result.replace(mana_symbol, f'{MANA_SYMBOL_COLORS[mana_symbol]}#normal ')
+    for i in range(1, 20):
+        result = result.replace(f'{{{i}}}', f'#gray-black {i}#normal ')
+    return result
+
+def colorize_keywords(text: str):
+    result = str(text)
+    for keyword in KEYWORD_COLORS:
+        if '{}' in keyword:
+            replacement = KEYWORD_COLORS[keyword]
+            result = result.replace(keyword.format('X'), replacement.format('X'))
+            for i in range(1, 27):
+                result = result.replace(keyword.format(i), replacement.format(i))
+        else:
+            result = result.replace(keyword, KEYWORD_COLORS[keyword])
+    # gs = 'gain {} life'
+    # result.replace(gs.format('X'), gs.format('#168-black {}#normal '.format(gs.format('X'))))
+    # for i in range(1, 27):
+    #     result = result.replace(gs.format(i), gs.format(f'#168-black {gs.format(i)}#normal '))
+    # ls = 'loses {} life'
+    # result.replace(ls.format('X'), ls.format('#239-black {}#normal '.format(ls.format('X'))))
+    # for i in range(1, 27):
+    #     result = result.replace(ls.format(i), ls.format(f'#239-black {ls.format(i)}#normal '))
+    return result
 
 class Card:
     def get_saved_data():
@@ -146,6 +227,15 @@ class Card:
 
     def get_cct_name(self):
         return f'#{CCT_COLORS[self.get_color()]} {self.name}'
+
+    def get_cct_mana_cost(self):
+        return replace_mana_symbols(self.manaCost)
+
+    def get_cct_type(self):
+        return replace_mana_symbols(self.type)
+
+    def get_cct_text(self):
+        return colorize_keywords(replace_mana_symbols(self.text))
 
     def get_cct_description(self):
         result = ''
