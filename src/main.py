@@ -1,7 +1,7 @@
 import curses
 import os
 import clipboard
-from mtgsdk import CARD_TYPES, CCT_COLORS, THEMES, Card, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL, PIE_WHEEL_TYPE_COLORS
+from mtgsdk import CARD_TYPES, CCT_COLORS, THEMES, Card, CreatureCard, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL, PIE_WHEEL_TYPE_COLORS
 
 from cursesui.Elements import BarChart, Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
 from cursesui.Utility import SINGLE_ELEMENT, cct_len, cct_real_str, choose_file, draw_borders, draw_separator, drop_down_box, get_percentages, message_box, put, reverse_color_pair, str_smart_split
@@ -38,6 +38,10 @@ def draw_card(card: Card, y: int, x: int):
         for l in str_smart_split(line, CARD_WIDTH - 2):
             put(window, y, 1, l)
             y += 1
+    if isinstance(card, CreatureCard):
+        draw_separator(window, CARD_HEIGHT - 3, color_pair)
+        pts = f'({card.power}/{card.toughness})'
+        window.addstr(CARD_HEIGHT - 2, CARD_WIDTH - len(pts) - 1, pts)
     window.getch()
 
 def open_card_description_window(parent: Window, card: Card):
