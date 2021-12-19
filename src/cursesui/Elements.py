@@ -302,13 +302,15 @@ class PieChart(Canvas):
                         parent_window.addstr(y_pos, x_pos, '#')
                         continue
                     top = y_pos - self.center_y
-                    bottom = x_pos - self.center_x
+                    bottom = (x_pos - self.center_x) // 2
                     rad = atan2(top, bottom)
                     ri = 0
                     for ri in range(len(self.rads)):
                         if rad <= self.rads[ri]:
                             break
                     parent_window.addstr(y_pos, x_pos, '#', self.color_pairs[ri])
+                    # if rad in self.rads:
+                    #     parent_window.addstr(y_pos, x_pos, '@', curses.A_BLINK)
 
 class Separator(UIElement):
     def __init__(self, parent: Window, y: int, text: str='', color_pair: str='normal'):
@@ -565,7 +567,7 @@ class List(Canvas):
 
     def handle_key(self, key: int):
         # the main thing
-        if key == 10 and len(self.options) > 0: # ENTER
+        if key == 10 and self.click and len(self.options) > 0: # ENTER
             self.click(self.choice, self.cursor, self.options[self.choice])
         if key == self.scroll_up_key: # SCROLL UP
             self.choice -= 1

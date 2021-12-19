@@ -25,9 +25,10 @@ CCT_COLORS = {
 }
 
 THEME_WORDS = {
-    '+1/+1 counters': [ '+1/+1 counter', 'proliferate' ],
+    '+1/+1 counters': [ '+1/+1 counter', 'proliferate', 'renown' ],
+    'Removal': ['destroy target', 'enchanted creature can\'t attack or block', 'enchanted creature can\'t attack, block', 'enchanted creature loses all abilities', 'damage to target attacking', 'damage to target creature', 'damage to any target', 'target creature gets -'],
     'Tokens': [ 'token', 'convoke' ],
-    'ETB': [ 'enters the battlefield', 'exile target creature you control' ],
+    'ETB': [ 'when <cardname> enters the battlefield', 'exile target creature you control' ],
     'Lifegain': [ 'lifelink', 'you gain' ],
     'Color matters': [ 'white creature', 'blue creature', 'black creature', 'red creature', 'green creature' ],
     'Flying': [ 'flying' ],
@@ -39,6 +40,7 @@ THEME_WORDS = {
     'Evasion': [ 'can\'t be blocked' ],
     'Spells matter': [ 'instant or sorcery', 'noncreature', 'instant and sorcery' ],
     'Mill': [ 'mills' ],
+    'Hand attack': [ 'discards' ]
 }
 
 THEMES = list(THEME_WORDS.keys())
@@ -249,7 +251,7 @@ class Card:
         result = set()
         for theme in THEME_WORDS:
             for theme_words in THEME_WORDS[theme]:
-                if theme_words.lower() in self.text.lower():
+                if theme_words.replace('<cardname>', self.name).lower() in self.text.lower():
                     result.add(theme)
         return list(result)
 

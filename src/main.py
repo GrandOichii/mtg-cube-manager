@@ -20,7 +20,7 @@ def get_saved_cube_names():
         return []
     return [os.path.splitext(f)[0] for f in os.listdir(SAVE_PATH) if os.path.isfile(os.path.join(SAVE_PATH, f)) and os.path.splitext(f)[1] == '.cube']
 
-def draw_card(card: Card, y: int, x: int):
+def draw_card(card: Card, y: int, x: int, show_themes: bool=False):
     window = curses.newwin(CARD_HEIGHT, CARD_WIDTH, y, x)
     color_pair = CCT_COLORS[card.get_color()]
     # draw
@@ -38,6 +38,14 @@ def draw_card(card: Card, y: int, x: int):
         for l in str_smart_split(line, CARD_WIDTH - 2):
             put(window, y, 1, l)
             y += 1
+    if show_themes:
+        y += 2
+        themes = card.get_themes()
+        if len(themes) > 0:
+            draw_separator(window, y, color_pair)
+            put(window, y + 1, 1, '#pink-black Themes:')
+            for i in range(len(themes)):
+                put(window, y + 2 + i, 2, themes[i])
     if isinstance(card, CreatureCard):
         draw_separator(window, CARD_HEIGHT - 3, color_pair)
         pts = f'({card.power}/{card.toughness})'
@@ -47,11 +55,11 @@ def draw_card(card: Card, y: int, x: int):
 def open_card_description_window(parent: Window, card: Card):
     if card == None:
         return
-    draw_card(card, 10, 10)
+    y = (parent.HEIGHT - CARD_HEIGHT) // 2
+    x = (parent.WIDTH - CARD_WIDTH) // 2
+    draw_card(card, y, x, True)
     # height = parent.HEIGHT * 2 // 3
     # width = parent.WIDTH * 2 // 3
-    # y = (parent.HEIGHT - height) // 2
-    # x = (parent.WIDTH - width) // 2
     # window = curses.newwin(height, width, y, x)
     # card_description = card.get_cct_description().split('\n')
     # draw_borders(window, 'magenta-black')
@@ -82,14 +90,12 @@ class ColorStatisticsTab(MenuTab):
         self.initUI()
 
     def initUI(self):
-        self.pie_chart_values = [2, 1, 1, 4]
-
         self.total_count_label = UIElement(self.parent, '')
         self.total_count_label.set_pos(1, 1)
 
         pie_chart_height = 20
         pie_chart_width = self.parent.WIDTH - 120
-        self.pie_chart = PieChart(self.parent, pie_chart_height, pie_chart_width, self.pie_chart_values, colors=['red', 'blue', 'yellow', 'green'], border_color_pair='green-black')
+        self.pie_chart = PieChart(self.parent, pie_chart_height, pie_chart_width, [], colors=['red', 'blue', 'yellow', 'green'], border_color_pair='green-black')
         self.pie_chart.set_pos(4, 1)
  
         self.type_labels = []
@@ -336,6 +342,10 @@ class CubeManagerMenu(Menu):
             return None
         return self.filtered_cards[self.card_names_list.choice]
 
+    def open_card_description_window(self):
+        if self.selected_tab == 0:
+            open_card_description_window(self.parent, self.get_selected_card())
+
     def load_cube(self, cube_name: str):
         self.cube = Cube.load(f'{SAVE_PATH}/{cube_name}.cube')
 
@@ -345,7 +355,7 @@ class CubeManagerMenu(Menu):
     def handle_key(self, key: int):
         super().handle_key(key)
         if key == 68: # D
-            open_card_description_window(self.parent, self.get_selected_card())
+            self.open_card_description_window()
         if key == 9 or key == 353: # TAB/SHIFT+TAB
             tab = self.tabs[self.selected_tab]
             if isinstance(tab, ColorStatisticsTab):
@@ -503,7 +513,7 @@ class CubeManagerWindow(Window):
                     self.current_menu.save_cube()
                     self.current_menu = self.main_menu
                     self.state = 'main_menu'
-
+            
     def load_cube(self, cube_name: str):
         self.state = 'managing_cube'
         self.draw_cube_loading_window()
