@@ -1,7 +1,7 @@
-from os import replace
 import requests
 import json
 import os.path
+import random
 
 NAME_URL = 'https://api.magicthegathering.io/v1/cards'
 ALL_CARDS_PATH = 'assets/all_cards.json'
@@ -13,6 +13,8 @@ LABELS = [STRONG_LABEL, MED_LABEL, WEAK_LABEL]
 
 COLORS = ['White', 'Blue', 'Black', 'Red', 'Green', 'MC', 'Colorless']
 CARD_TYPES = ['Creature', 'Sorcery', 'Instant', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
+
+PACK_SIZE = 15
 
 CCT_COLORS = {
     'White': 'white-black',
@@ -44,6 +46,9 @@ THEME_WORDS = {
 }
 
 THEMES = list(THEME_WORDS.keys())
+
+THEME_COLORS = [f'{(i + 1) * 10}' for i in range(len(THEMES))]
+
 
 MANA_SYMBOL_COLORS = {
     '{W}': '#white-black W',
@@ -115,14 +120,6 @@ def colorize_keywords(text: str):
                 result = result.replace(keyword.format(i), replacement.format(i))
         else:
             result = result.replace(keyword, KEYWORD_COLORS[keyword])
-    # gs = 'gain {} life'
-    # result.replace(gs.format('X'), gs.format('#168-black {}#normal '.format(gs.format('X'))))
-    # for i in range(1, 27):
-    #     result = result.replace(gs.format(i), gs.format(f'#168-black {gs.format(i)}#normal '))
-    # ls = 'loses {} life'
-    # result.replace(ls.format('X'), ls.format('#239-black {}#normal '.format(ls.format('X'))))
-    # for i in range(1, 27):
-    #     result = result.replace(ls.format(i), ls.format(f'#239-black {ls.format(i)}#normal '))
     return result
 
 class Card:
@@ -315,6 +312,16 @@ class Cube:
                 self.card_info.pop(card.multiverseid, None)
                 self.cards.remove(card)
                 return
+
+    def generate_packs(self, amount: int=1, pack_size: int=PACK_SIZE):
+        result = []
+        cards = random.sample(self.cards, amount * pack_size)
+        for i in range(amount):
+            result += [[]]
+        for i in range(len(cards)):
+            ind = i % amount
+            result[ind] += [cards[i]]
+        return result
 
     def save(self, path: str):
         ids = [card.multiverseid for card in self.cards]

@@ -1,10 +1,10 @@
 import curses
 import os
 import clipboard
-from mtgsdk import CARD_TYPES, CCT_COLORS, THEMES, Card, CreatureCard, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL, PIE_WHEEL_TYPE_COLORS
+from mtgsdk import THEME_COLORS, CARD_TYPES, CCT_COLORS, THEMES, Card, CreatureCard, Cube, COLORS, STRONG_LABEL, MED_LABEL, WEAK_LABEL, PIE_WHEEL_TYPE_COLORS
 
-from cursesui.Elements import BarChart, Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
-from cursesui.Utility import SINGLE_ELEMENT, cct_len, cct_real_str, choose_file, draw_borders, draw_separator, drop_down_box, get_percentages, message_box, put, reverse_color_pair, str_smart_split
+from ncursesui.Elements import BarChart, Button, Menu, MenuTab, PieChart, Separator, TextField, UIElement, VerticalLine, Widget, Window, List
+from ncursesui.Utility import SINGLE_ELEMENT, cct_len, choose_file, draw_borders, draw_separator, drop_down_box, get_percentages, message_box, put, str_smart_split
 
 os.environ.setdefault('ESCDELAY', '25')
 
@@ -13,6 +13,14 @@ SAVE_PATH = 'cubes'
 CARD_HEIGHT = 25
 CARD_WIDTH = 40
 
+def draw_papyrus(options: list[str], y: int, x: int):
+    min_height = 20
+    min_width = 10
+    window_height = max(min_height, len(options) + 2)
+    window_width = max(max([cct_len(o) for o in options]) + 2, min_width)
+    window = curses.newwin(window_height, window_width, y, x)
+    draw_borders(window)
+    window.getch()
 
 def get_saved_cube_names():
     if not os.path.exists(SAVE_PATH):
@@ -58,27 +66,6 @@ def open_card_description_window(parent: Window, card: Card):
     y = (parent.HEIGHT - CARD_HEIGHT) // 2
     x = (parent.WIDTH - CARD_WIDTH) // 2
     draw_card(card, y, x, True)
-    # height = parent.HEIGHT * 2 // 3
-    # width = parent.WIDTH * 2 // 3
-    # window = curses.newwin(height, width, y, x)
-    # card_description = card.get_cct_description().split('\n')
-    # draw_borders(window, 'magenta-black')
-    # put(window, 0, 1, f'Card description')
-    # put(window, 1, width - cct_len(card_description[0]) - 1, card_description[0])
-    # put(window, 2, 2, card_description[1])
-    # put(window, 3, 2, card_description[2])
-    # y = 4
-    # for l in range(3, len(card_description)):
-    #     desc = str_smart_split(card_description[l], width - 4)
-    #     for i in range(len(desc)):
-    #         y += 1
-    #         put(window, y, 2, desc[i])
-    # themes = card.get_themes()
-    # y += 2
-    # put(window, y, 1, '#pink-black Themes:')
-    # for i in range(len(themes)):
-    #     put(window, y + 1 + i, 2, themes[i])
-    # window.getch()
 
 class ColorStatisticsTab(MenuTab):
     def __init__(self, parent: Window, color: str, cube: Cube):
@@ -86,7 +73,6 @@ class ColorStatisticsTab(MenuTab):
         self.color = color
         self.cube = cube
         self.cards = []
-        self.theme_colors = [f'{(i + 1) * 10}' for i in range(len(THEMES))]
         self.initUI()
 
     def initUI(self):
@@ -104,7 +90,7 @@ class ColorStatisticsTab(MenuTab):
             label.set_pos(4 + i, pie_chart_width + 4)
             self.type_labels += [label]
 
-        self.theme_pie_chart = PieChart(self.parent, pie_chart_height, pie_chart_width, [], colors=self.theme_colors, border_color_pair='green-black')
+        self.theme_pie_chart = PieChart(self.parent, pie_chart_height, pie_chart_width, [], colors=THEME_COLORS, border_color_pair='green-black')
         self.theme_pie_chart.set_pos(pie_chart_height + 6, 1)
     
         self.theme_percentages_labels = []
@@ -116,7 +102,7 @@ class ColorStatisticsTab(MenuTab):
         card_names_list_width = self.parent.WIDTH - pie_chart_width - 35
 
         self.card_names_list = List(self.parent, ['hi:)'], pie_chart_height, card_names_list_width, border_color_pair='green-black')
-        self.card_names_list.options
+        # self.card_names_list.options
         self.card_names_list.set_pos(4, pie_chart_width + 32)
         self.card_names_list.set_focused(True)
 
@@ -167,7 +153,7 @@ class ColorStatisticsTab(MenuTab):
         for i in range(len(THEMES)):
             ps = '%.2f' % percentages[i]
             placeholder = ' ' * (length - len(ps) - len(THEMES[i]) - 1)
-            self.theme_percentages_labels[i].text = f'#{self.theme_colors[i]}-black {THEMES[i]}#normal :{placeholder}#yellow-black {ps}%'
+            self.theme_percentages_labels[i].text = f'#{THEME_COLORS[i]}-black {THEMES[i]}#normal :{placeholder}#yellow-black {ps}%'
 
         # card list
         self.cards = self.cube.get_color_split()[self.color]
@@ -180,7 +166,7 @@ class ColorStatisticsTab(MenuTab):
     def get_selected_card(self):
         if not self.card_names_list.focused:
             return None
-        return self.cards[self.card_names_list.choice]
+        return self.cards[self.card_names_list.gete_choice()]
 
     def handle_key(self, key: int):
         super().handle_key(key)
@@ -202,7 +188,7 @@ class CubeManagerMenu(Menu):
         self.filtered_cards = []
         self.load_cube(cube_name)
         self.initUI()
-        self.update_color_count()
+        self.update_gen_stat_tab()
         self.change_name_action()
 
     def initUI(self):
@@ -267,6 +253,7 @@ class CubeManagerMenu(Menu):
         self.init_color_statistics_tabs()
     
     def init_general_statistics_tab(self):
+        # init the elements
         self.general_statistics_tab = MenuTab(self.parent, 'General statistics')
         self.count_labels = []
         for i in range(len(COLORS)):
@@ -274,9 +261,31 @@ class CubeManagerMenu(Menu):
             label.set_pos(1 + i, 1)
             self.count_labels += [label]
 
+        pie_chart_height = 20
+        pie_chart_width = 60
+        pie_chart_y = 9
+        self.theme_pie_chart = PieChart(self.parent, pie_chart_height, pie_chart_width, [], 'green-black', THEME_COLORS)
+        self.theme_pie_chart.set_pos(pie_chart_y, 1)
+
+        self.theme_labels = []
+        # message_box(self.parent, str(THEMES))
+        for i in range(len(THEMES)):
+            label = UIElement(self.parent, 'funy amogus')
+            label.set_pos(9 + i, pie_chart_width + 3)
+            self.theme_labels += [label]
+
+        # element adding
         for i in range(len(self.count_labels)):
             self.general_statistics_tab.add_element(self.count_labels[i])
-        self.general_statistics_tab.add_element(Separator(self.parent, 9, color_pair=self.border_color_pair))
+        self.general_statistics_tab.add_element(Separator(self.parent, 1, color_pair=self.border_color_pair))
+        self.general_statistics_tab.add_element(Separator(self.parent, 8, color_pair=self.border_color_pair))
+        self.general_statistics_tab.add_element(self.theme_pie_chart)
+        for label in self.theme_labels:
+            self.general_statistics_tab.add_element(label)
+        self.general_statistics_tab.add_element(Separator(self.parent, 8 + pie_chart_height + 2, color_pair=self.border_color_pair))
+        self.general_statistics_tab.add_element(VerticalLine(self.parent, pie_chart_height + 3, self.border_color_pair, pie_chart_y - 1, pie_chart_width + 2))
+        self.general_statistics_tab.add_element(VerticalLine(self.parent, len(COLORS) + 1, self.border_color_pair, 1, 20))
+        # add the tab itself
         self.add_tab(self.general_statistics_tab)
 
     def init_color_statistics_tabs(self):
@@ -284,18 +293,37 @@ class CubeManagerMenu(Menu):
             tab = ColorStatisticsTab(self.parent, color, self.cube)
             self.add_tab(tab)
 
-    def update_color_count(self):
+    def update_gen_stat_tab(self):
         counts = self.cube.get_color_counts()
-        counts = [counts[color]['all'] for color in counts]
+        
+        # update color counts
+        all_counts = [counts[color]['all'] for color in counts]
         required_length = 14
         for i in range(len(COLORS)):
             color = COLORS[i] 
             text = color + ': '
-            cl = len(str(counts[i]))
+            cl = len(str(all_counts[i]))
             while len(text) + cl < required_length:
                 text += ' '
-            text += str(counts[i])
+            text += str(all_counts[i])
             self.count_labels[i].text = f'#{CCT_COLORS[color]} {text}'
+        
+        # update theme pie chart
+        pie_chart_values = dict()
+        for theme in THEMES:
+            pie_chart_values[theme] = 0
+        for color in counts:
+            for theme in THEMES:
+                pie_chart_values[theme] += counts[color][theme]
+        pie_chart_values = list(pie_chart_values.values())
+        self.theme_pie_chart.set_values(pie_chart_values)
+        
+        # update theme percentages
+        theme_percentages = get_percentages(pie_chart_values)
+        for i in range(len(THEMES)):
+            s = f'{THEMES[i]}:'
+            ps = '%.2f' % theme_percentages[i]
+            self.theme_labels[i].text = f'#{THEME_COLORS[i]}-black {s:<15} #yellow-black {ps}%'
 
     def add_card_action(self):
         name = self.card_name_widget.sub_elements[1].text
@@ -308,7 +336,7 @@ class CubeManagerMenu(Menu):
             card = cards[result[0]]
             self.cube.add_card(card)
             self.change_name_action()
-            self.update_color_count()
+            self.update_gen_stat_tab()
 
     def change_name_action(self):
         name = self.card_name_widget.sub_elements[1].text
@@ -335,12 +363,12 @@ class CubeManagerMenu(Menu):
             if options[command] == 'Remove' and message_box(self.parent, f'Are you sure you want to delete {card.get_cct_name()} #normal from cube?', ['No', 'Yes']) == 'Yes':
                 self.cube.remove_card_by_name(real_card_name)
                 self.change_name_action()
-        self.update_color_count()
+        self.update_gen_stat_tab()
 
     def get_selected_card(self):
         if not self.card_names_list.focused:
             return None
-        return self.filtered_cards[self.card_names_list.choice]
+        return self.filtered_cards[self.card_names_list.get_choice()]
 
     def open_card_description_window(self):
         if self.selected_tab == 0:
@@ -364,6 +392,8 @@ class CubeManagerMenu(Menu):
 class CubeManagerWindow(Window):
     def __init__(self, window):
         super().__init__(window)
+        self.recommended_height = 0
+        self.recommended_width = 0
         self.state = 'main_menu'
         self.imported_text = ''
         # options = []
