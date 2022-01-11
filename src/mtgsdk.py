@@ -14,7 +14,7 @@ LABELS = [STRONG_LABEL, MED_LABEL, WEAK_LABEL]
 COLORS = ['White', 'Blue', 'Black', 'Red', 'Green', 'MC', 'Colorless']
 CARD_TYPES = ['Creature', 'Sorcery', 'Instant', 'Enchantment', 'Artifact', 'Planeswalker', 'Land']
 
-PACK_SIZE = 15
+PACK_SIZE = 2
 
 CCT_COLORS = {
     'White': 'white-black',
@@ -39,7 +39,6 @@ THEME_WORDS = {
     'Direct damage': [ 'damage to any target' ],
     'Energy': [ '{E}' ],
     'Treasure': [ 'Treasure token' ],
-    'Evasion': [ 'can\'t be blocked' ],
     'Spells matter': [ 'instant or sorcery', 'noncreature', 'instant and sorcery' ],
     'Mill': [ 'mills' ],
     'Hand attack': [ 'discards' ]

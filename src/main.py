@@ -166,7 +166,7 @@ class ColorStatisticsTab(MenuTab):
     def get_selected_card(self):
         if not self.card_names_list.focused:
             return None
-        return self.cards[self.card_names_list.gete_choice()]
+        return self.cards[self.card_names_list.get_choice()]
 
     def handle_key(self, key: int):
         super().handle_key(key)
